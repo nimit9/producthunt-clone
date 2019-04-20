@@ -4,12 +4,13 @@ from .models import Product
 from django.utils import timezone
 # Create your views here.
 def home(request):
-    return render(request, 'products/home.html')
+    products = Product.objects
+    return render(request, 'products/home.html', {'products':products})
 
-@login_required
+@login_required(login_url="/account/signup")
 def create(request):
     if request.method == 'POST':
-        if request.POST['title'] and request.POST['body'] and request.POST['url'] and request.FILE['icon'] and request.FILE'image']:
+        if request.POST['title'] and request.POST['body'] and request.POST['url'] and request.FILES['icon'] and request.FILES['image']:
             product = Product()
             product.title = request.POST['title']
             product.body = request.POST['body']
@@ -17,9 +18,10 @@ def create(request):
                 product.url = request.POST['url']
             else: 
                 product.url = 'http://' + request.POST['url']
-            product.icon = request.FILE['icon']
-            product.image = request.FILE['image']        
+            product.icon = request.FILES['icon']
+            product.image = request.FILES['image']        
             product.pub_date = timezone.datetime.now()
+            product.votes_total = 1 
             product.hunter = request.user
             product.save()
             return redirect('/products/' + str(product.id))
@@ -33,3 +35,13 @@ def create(request):
 def detail(request, product_id):
     product = get_object_or_404(Product, pk=product_id)
     return render(request, 'products/detail.html', {'product':product})      
+
+
+@login_required(login_url="/account/signup")
+def upvote(request, product_id):
+    if request.method == 'POST':
+        product = get_object_or_404(Product, pk=product_id)
+        product.votes_total += 1
+        product.save()
+        return redirect('/products/' + str(product.id))
+
